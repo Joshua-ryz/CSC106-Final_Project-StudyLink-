@@ -5,6 +5,7 @@
 
 import { Router } from 'express'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import { z } from 'zod'
 import { asyncHandler } from '../middleware/errorHandler'
 import { validateBody } from '../middleware/validation'

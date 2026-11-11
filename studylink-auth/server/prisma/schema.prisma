@@ -1,14 +1,12 @@
-/**
- * Prisma Schema for StudyLink
- * Defines the database models for the application
- */
+// Prisma Schema for StudyLink
+// Defines the database models for the application
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -31,11 +29,13 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  tutorProfile  TutorProfile?
-  sessions      Session[] @relation("StudentSessions")
-  tutorSessions Session[] @relation("TutorSessions")
-  ratings       Rating[]  @relation("StudentRatings")
-  tutorRatings  Rating[]  @relation("TutorRatings")
+  tutorProfile        TutorProfile?
+  sessions            Session[] @relation("StudentSessions")
+  tutorSessions       Session[] @relation("TutorSessions")
+  ratings             Rating[]  @relation("StudentRatings")
+  tutorRatings        Rating[]  @relation("TutorRatings")
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
 
   @@map("users")
 }
@@ -44,7 +44,7 @@ model TutorProfile {
   id              String   @id @default(cuid())
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subjects        String[] @db.Text
+  subjects        String[]
   expertise       String   @db.VarChar(50) // beginner, intermediate, advanced
   availability    Json     // { morning: boolean, afternoon: boolean, evening: boolean }
   bio             String?  @db.Text

@@ -154,13 +154,13 @@ export function generateTokens(user: { id: string; email: string; role: string }
   const accessToken = jwt.sign(
     { userId: user.id, email: user.email, role: user.role, type: 'access' },
     env.jwtSecret,
-    { expiresIn: env.jwtExpiresIn }
+    { expiresIn: env.jwtExpiresIn as jwt.SignOptions['expiresIn'] }
   )
 
   const refreshToken = jwt.sign(
     { userId: user.id, email: user.email, role: user.role, type: 'refresh' },
     env.refreshTokenSecret,
-    { expiresIn: env.refreshTokenExpiresIn }
+    { expiresIn: env.refreshTokenExpiresIn as jwt.SignOptions['expiresIn'] }
   )
 
   return { accessToken, refreshToken }

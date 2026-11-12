@@ -18,60 +18,50 @@ const router = Router()
 
 // Validation schemas
 const loginSchema = z.object({
-  body: z.object({
-    email: z.string().email('Invalid email format').toLowerCase(),
-    password: z.string().min(1, 'Password is required'),
-    rememberMe: z.boolean().optional(),
-  }),
+  email: z.string().email('Invalid email format').toLowerCase(),
+  password: z.string().min(1, 'Password is required'),
+  rememberMe: z.boolean().optional(),
 })
 
 const registerSchema = z.object({
-  body: z.object({
-    fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100),
-    email: z.string().email('Invalid email format').toLowerCase(),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirmPassword: z.string(),
-    course: z.string().min(2, 'Course must be at least 2 characters').max(100),
-    role: z.enum(['TUTEE', 'TUTOR', 'BOTH']),
-  }).refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  }),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100),
+  email: z.string().email('Invalid email format').toLowerCase(),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  confirmPassword: z.string(),
+  course: z.string().min(2, 'Course must be at least 2 characters').max(100),
+  role: z.enum(['TUTEE', 'TUTOR', 'BOTH']),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 })
 
 const forgotPasswordSchema = z.object({
-  body: z.object({
-    email: z.string().email('Invalid email format').toLowerCase(),
-  }),
+  email: z.string().email('Invalid email format').toLowerCase(),
 })
 
 const resetPasswordSchema = z.object({
-  body: z.object({
-    token: z.string().min(1, 'Reset token is required'),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirmPassword: z.string(),
-  }).refine(data => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  }),
+  token: z.string().min(1, 'Reset token is required'),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
+  confirmPassword: z.string(),
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 })
 
 const refreshTokenSchema = z.object({
-  body: z.object({
-    refreshToken: z.string().min(1, 'Refresh token is required'),
-  }),
+  refreshToken: z.string().min(1, 'Refresh token is required'),
 })
 
 /**

@@ -4,13 +4,13 @@
  */
 
 import { Request, Response, NextFunction } from 'express'
-import { AnyZodObject, ZodError } from 'zod'
+import { ZodTypeAny, ZodError } from 'zod'
 import { ApiError } from './errorHandler'
 
 /**
  * Validate request against Zod schema
  */
-export function validate(schema: AnyZodObject) {
+export function validate(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
@@ -27,9 +27,9 @@ export function validate(schema: AnyZodObject) {
           if (!errors[path]) errors[path] = []
           errors[path].push(e.message)
         })
-        throw ApiError.badRequest('Validation failed', errors)
+        return next(ApiError.badRequest('Validation failed', errors))
       }
-      throw error
+      return next(error)
     }
   }
 }
@@ -37,7 +37,7 @@ export function validate(schema: AnyZodObject) {
 /**
  * Validate request body only
  */
-export function validateBody(schema: AnyZodObject) {
+export function validateBody(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.body = await schema.parseAsync(req.body)
@@ -50,9 +50,9 @@ export function validateBody(schema: AnyZodObject) {
           if (!errors[path]) errors[path] = []
           errors[path].push(e.message)
         })
-        throw ApiError.badRequest('Invalid request body', errors)
+        return next(ApiError.badRequest('Invalid request body', errors))
       }
-      throw error
+      return next(error)
     }
   }
 }
@@ -60,7 +60,7 @@ export function validateBody(schema: AnyZodObject) {
 /**
  * Validate query parameters only
  */
-export function validateQuery(schema: AnyZodObject) {
+export function validateQuery(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.query = await schema.parseAsync(req.query)
@@ -73,9 +73,9 @@ export function validateQuery(schema: AnyZodObject) {
           if (!errors[path]) errors[path] = []
           errors[path].push(e.message)
         })
-        throw ApiError.badRequest('Invalid query parameters', errors)
+        return next(ApiError.badRequest('Invalid query parameters', errors))
       }
-      throw error
+      return next(error)
     }
   }
 }
@@ -83,7 +83,7 @@ export function validateQuery(schema: AnyZodObject) {
 /**
  * Validate URL parameters only
  */
-export function validateParams(schema: AnyZodObject) {
+export function validateParams(schema: ZodTypeAny) {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.params = await schema.parseAsync(req.params)
@@ -96,9 +96,9 @@ export function validateParams(schema: AnyZodObject) {
           if (!errors[path]) errors[path] = []
           errors[path].push(e.message)
         })
-        throw ApiError.badRequest('Invalid URL parameters', errors)
+        return next(ApiError.badRequest('Invalid URL parameters', errors))
       }
-      throw error
+      return next(error)
     }
   }
 }

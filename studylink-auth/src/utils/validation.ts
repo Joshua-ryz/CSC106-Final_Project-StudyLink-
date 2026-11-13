@@ -73,10 +73,10 @@ export type RegisterStep2Data = z.infer<typeof registerStep2Schema>
 /**
  * Zod schema for role selection
  */
-type RoleValue = 'tutee' | 'tutor' | 'both'
+type RoleValue = 'TUTEE' | 'TUTOR' | 'BOTH'
 
 export const roleSelectionSchema = z.object({
-  role: z.enum<[RoleValue, ...RoleValue[]]>(['tutee', 'tutor', 'both'], {
+  role: z.enum<[RoleValue, ...RoleValue[]]>(['TUTEE', 'TUTOR', 'BOTH'], {
     message: 'Please select an account role',
   }),
 })

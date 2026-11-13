@@ -171,18 +171,18 @@ describe('Validation Schemas', () => {
   })
 
   describe('roleSelectionSchema', () => {
-    it('accepts tutee role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'tutee' })
+    it('accepts TUTEE role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'TUTEE' })
       expect(result.success).toBe(true)
     })
 
-    it('accepts tutor role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'tutor' })
+    it('accepts TUTOR role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'TUTOR' })
       expect(result.success).toBe(true)
     })
 
-    it('accepts both role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'both' })
+    it('accepts BOTH role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'BOTH' })
       expect(result.success).toBe(true)
     })
 

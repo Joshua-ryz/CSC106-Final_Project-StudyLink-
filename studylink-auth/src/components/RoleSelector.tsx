@@ -17,15 +17,15 @@ interface RoleSelectorProps {
 }
 
 const roleIcons = {
-  tutee: GraduationCap,
-  tutor: UserCheck,
-  both: Users,
+  TUTEE: GraduationCap,
+  TUTOR: UserCheck,
+  BOTH: Users,
 }
 
 const roleColors = {
-  tutee: 'from-blue-500 to-blue-600',
-  tutor: 'from-green-500 to-green-600',
-  both: 'from-purple-500 to-purple-600',
+  TUTEE: 'from-blue-500 to-blue-600',
+  TUTOR: 'from-green-500 to-green-600',
+  BOTH: 'from-purple-500 to-purple-600',
 }
 
 export function RoleSelector({ value, onChange, error, disabled }: RoleSelectorProps) {

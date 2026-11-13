@@ -54,3 +54,16 @@ export const env: EnvConfig = {
 
 export const isProduction = env.nodeEnv === 'production'
 export const isDevelopment = env.nodeEnv === 'development'
+
+// Validate secrets in production
+const placeholderWords = ['change', 'secret', 'example', 'placeholder', 'your-', 'REPLACE_ME']
+const minSecretLength = 32
+
+if (isProduction) {
+  if (env.jwtSecret.length < minSecretLength || placeholderWords.some(w => env.jwtSecret.toLowerCase().includes(w))) {
+    throw new Error('JWT_SECRET must be at least 32 characters and not contain placeholder words in production')
+  }
+  if (env.refreshTokenSecret.length < minSecretLength || placeholderWords.some(w => env.refreshTokenSecret.toLowerCase().includes(w))) {
+    throw new Error('REFRESH_TOKEN_SECRET must be at least 32 characters and not contain placeholder words in production')
+  }
+}

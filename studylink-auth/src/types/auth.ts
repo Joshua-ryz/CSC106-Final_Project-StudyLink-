@@ -3,7 +3,7 @@
  * Centralized type definitions for the authentication system
  */
 
-export type UserRole = 'tutee' | 'tutor' | 'both';
+export type UserRole = 'TUTEE' | 'TUTOR' | 'BOTH';
 
 export interface User {
   id: string;
@@ -50,7 +50,7 @@ export interface ResetPasswordData {
 export interface AuthResponse {
   user: User;
   accessToken: string;
-  refreshToken?: string;
+  // refreshToken is NOT returned in body - only set as HTTP-only cookie
 }
 
 export interface ApiError {
@@ -66,17 +66,17 @@ export interface ValidationError {
 
 // Role display information
 export const ROLE_INFO: Record<UserRole, { title: string; description: string; icon: string }> = {
-  tutee: {
+  TUTEE: {
     title: 'I need tutoring',
     description: 'Find fellow CSU students who can help me understand academic subjects.',
     icon: 'graduation-cap',
   },
-  tutor: {
+  TUTOR: {
     title: 'I want to be a tutor',
     description: 'Share my knowledge and help fellow CSU students with their studies.',
     icon: 'user-check',
   },
-  both: {
+  BOTH: {
     title: 'Both',
     description: 'I want to find tutors and also provide tutoring services.',
     icon: 'users',
@@ -84,9 +84,9 @@ export const ROLE_INFO: Record<UserRole, { title: string; description: string; i
 };
 
 export const ROLE_OPTIONS = [
-  { value: 'tutee' as UserRole, label: 'I need tutoring', description: 'Find fellow CSU students who can help me understand academic subjects.' },
-  { value: 'tutor' as UserRole, label: 'I want to be a tutor', description: 'Share my knowledge and help fellow CSU students with their studies.' },
-  { value: 'both' as UserRole, label: 'Both', description: 'I want to find tutors and also provide tutoring services.' },
+  { value: 'TUTEE' as UserRole, label: 'I need tutoring', description: 'Find fellow CSU students who can help me understand academic subjects.' },
+  { value: 'TUTOR' as UserRole, label: 'I want to be a tutor', description: 'Share my knowledge and help fellow CSU students with their studies.' },
+  { value: 'BOTH' as UserRole, label: 'Both', description: 'I want to find tutors and also provide tutoring services.' },
 ];
 
 // Password requirements

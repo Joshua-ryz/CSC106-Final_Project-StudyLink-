@@ -61,7 +61,7 @@ const resetPasswordSchema = z.object({
 })
 
 const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(1, 'Refresh token is required'),
+  refreshToken: z.string().min(1, 'Refresh token is required').optional(),
 })
 
 /**
@@ -260,10 +260,15 @@ router.post('/logout', asyncHandler(async (req, res) => {
 
 /**
  * POST /api/auth/refresh
- * Refresh access token using refresh token
+ * Refresh access token using refresh token from HTTP-only cookie
  */
 router.post('/refresh', validateBody(refreshTokenSchema), asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body
+  // Read refresh token from HTTP-only cookie (more secure - JS cannot access)
+  const refreshToken = req.cookies?.refreshToken
+
+  if (!refreshToken) {
+    throw ApiError.unauthorized('Refresh token not found')
+  }
 
   // Verify refresh token
   const decoded = verifyRefreshToken(refreshToken)

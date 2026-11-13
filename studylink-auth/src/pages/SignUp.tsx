@@ -19,12 +19,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Mail, User, GraduationCap, Lock, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import {
-  registerStep1Schema,
-  registerStep2Schema,
-  roleSelectionSchema,
-  type RegisterStep1Data,
-  type RegisterStep2Data,
-  type RoleSelectionData,
+  registerSchema,
+  type RegisterFormData,
 } from '@/utils/validation'
 import { register as registerUser } from '@/services/authService'
 import { useAuth } from '@/hooks/useAuth'
@@ -39,12 +35,12 @@ import {
 } from '@/components'
 import { cn } from '@/utils'
 
-type FormData = RegisterStep1Data & RegisterStep2Data & RoleSelectionData
+type FormData = RegisterFormData
 
 const steps = [
   { id: 1, title: 'Personal Info', description: 'Tell us about yourself' },
-  { id: 2, title: 'Account Role', description: 'How will you use StudyLink?' },
-  { id: 3, title: 'Password', description: 'Secure your account' },
+  { id: 2, title: 'Role', description: 'How will you use StudyLink?' },
+  { id: 3, title: 'Security', description: 'Secure your account' },
 ]
 
 export function SignUp() {
@@ -70,10 +66,8 @@ export function SignUp() {
     setError,
     clearErrors,
     trigger,
-  } = useForm<FormData>({
-    resolver: zodResolver(
-      registerStep1Schema.merge(registerStep2Schema).merge(roleSelectionSchema)
-    ),
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       fullName: '',
       email: '',
@@ -167,6 +161,7 @@ export function SignUp() {
         error={errors.fullName?.message}
         icon={<User className="w-5 h-5" />}
         autoComplete="name"
+        id="fullName"
         {...register('fullName')}
       />
 
@@ -177,6 +172,7 @@ export function SignUp() {
         error={errors.email?.message}
         icon={<Mail className="w-5 h-5" />}
         autoComplete="email"
+        id="email"
         {...register('email')}
       />
 
@@ -187,6 +183,7 @@ export function SignUp() {
         error={errors.course?.message}
         icon={<GraduationCap className="w-5 h-5" />}
         autoComplete="off"
+        id="course"
         {...register('course')}
       />
     </div>
@@ -212,6 +209,7 @@ export function SignUp() {
         autoComplete="new-password"
         showStrength
         strengthTarget="password"
+        id="password"
         {...register('password')}
       />
 
@@ -255,6 +253,7 @@ export function SignUp() {
         error={errors.confirmPassword?.message}
         icon={<Lock className="w-5 h-5" />}
         autoComplete="new-password"
+        id="confirmPassword"
         {...register('confirmPassword')}
       />
     </div>

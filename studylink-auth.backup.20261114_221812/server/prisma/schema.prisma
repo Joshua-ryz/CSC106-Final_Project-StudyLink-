@@ -1,0 +1,126 @@
+// Prisma Schema for StudyLink
+// Defines the database models for the application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TUTEE
+  TUTOR
+  BOTH
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique @db.VarChar(255)
+  passwordHash  String    @db.VarChar(255)
+  fullName      String    @db.VarChar(100)
+  course        String    @db.VarChar(100)
+  role          UserRole  @default(TUTEE)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  tutorProfile        TutorProfile?
+  sessions            Session[] @relation("StudentSessions")
+  tutorSessions       Session[] @relation("TutorSessions")
+  ratings             Rating[]  @relation("StudentRatings")
+  tutorRatings        Rating[]  @relation("TutorRatings")
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
+
+  @@map("users")
+}
+
+model TutorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects        String[]
+  expertise       String   @db.VarChar(50) // beginner, intermediate, advanced
+  availability    Json     // { morning: boolean, afternoon: boolean, evening: boolean }
+  bio             String?  @db.Text
+  hourlyRate      Decimal? @db.Decimal(10, 2)
+  rating          Float    @default(0)
+  totalReviews    Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("tutor_profiles")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  studentId     String
+  student       User     @relation("StudentSessions", fields: [studentId], references: [id], onDelete: Cascade)
+  tutorId       String
+  tutor         User     @relation("TutorSessions", fields: [tutorId], references: [id], onDelete: Cascade)
+  subject       String   @db.VarChar(100)
+  topic         String?  @db.Text
+  scheduledAt   DateTime
+  duration      Int      // in minutes
+  status        SessionStatus @default(PENDING)
+  notes         String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  rating        Rating?
+
+  @@map("sessions")
+}
+
+enum SessionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  COMPLETED
+}
+
+model Rating {
+  id          String   @id @default(cuid())
+  sessionId   String   @unique
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User     @relation("StudentRatings", fields: [studentId], references: [id], onDelete: Cascade)
+  tutorId     String
+  tutor       User     @relation("TutorRatings", fields: [tutorId], references: [id], onDelete: Cascade)
+  score       Int      // 1-5
+  comment     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@map("ratings")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique @db.Text
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}

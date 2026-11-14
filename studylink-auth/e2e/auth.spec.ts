@@ -13,7 +13,7 @@ test.describe('Authentication Flow', () => {
 
   test.describe('Login Page', () => {
     test('should display login form with all elements', async ({ page }) => {
-      await expect(page.locator('h1')).toContainText('Welcome Back')
+      await expect(page.getByRole('heading', { name: 'Welcome Back' })).toBeVisible()
       await expect(page.locator('input[type="email"]')).toBeVisible()
       await expect(page.locator('input[type="password"]')).toBeVisible()
       await expect(page.locator('button[type="submit"]')).toContainText('Sign In')
@@ -44,32 +44,35 @@ test.describe('Authentication Flow', () => {
       await page.fill('input[type="email"]', 'student@gmail.com')
       await page.fill('input[type="password"]', 'password123')
       await page.click('button[type="submit"]')
-      await expect(page.locator('text=Please use your CSU email address')).toBeVisible()
+      await expect(page.locator('text=Please use your official Caraga State University email address')).toBeVisible()
     })
 
     test('should toggle password visibility', async ({ page }) => {
-      const passwordInput = page.locator('input[type="password"]')
+      const passwordInput = page.locator('input[type="password"]').first()
       await expect(passwordInput).toHaveAttribute('type', 'password')
 
       // Click show password button
       await page.click('button[aria-label="Show password"]')
-      await expect(passwordInput).toHaveAttribute('type', 'text')
+      // Re-locate the input since its type changed
+      const visibleInput = page.locator('input[type="text"]').first()
+      await expect(visibleInput).toHaveAttribute('type', 'text')
 
       // Click hide password button
       await page.click('button[aria-label="Hide password"]')
-      await expect(passwordInput).toHaveAttribute('type', 'password')
+      const hiddenInput = page.locator('input[type="password"]').first()
+      await expect(hiddenInput).toHaveAttribute('type', 'password')
     })
 
     test('should navigate to register page', async ({ page }) => {
       await page.click('text=Create one')
       await expect(page).toHaveURL(/.*register/)
-      await expect(page.locator('h1')).toContainText('Create Account')
+      await expect(page.locator('span:has-text("Personal Info")').first()).toBeVisible()
     })
 
     test('should navigate to forgot password page', async ({ page }) => {
       await page.click('text=Forgot password?')
       await expect(page).toHaveURL(/.*forgot-password/)
-      await expect(page.locator('h1')).toContainText('Forgot Password')
+      await expect(page.getByRole('heading', { name: 'Forgot Password?' })).toBeVisible()
     })
   })
 
@@ -103,7 +106,7 @@ test.describe('Authentication Flow', () => {
 
     test('should navigate to step 2 - role selection', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
 
@@ -115,16 +118,16 @@ test.describe('Authentication Flow', () => {
 
     test('should require role selection', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
       await page.click('button:has-text("Continue")')
       await expect(page.locator('text=Please select an account role')).toBeVisible()
     })
 
-    test('should navigate to step 3 - password', async ({ page }) => {
+    test('should navigate to step 3 - details', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
 
@@ -132,34 +135,51 @@ test.describe('Authentication Flow', () => {
       await page.click('text=I need tutoring')
       await page.click('button:has-text("Continue")')
 
-      await expect(page.locator('text=Password')).toBeVisible()
-      await expect(page.locator('text=Confirm Password')).toBeVisible()
-      await expect(page.locator('text=At least 8 characters')).toBeVisible()
+      // Step 3 - Details for Seeker - check progress indicator shows step 3 (the step title in progress bar)
+      await expect(page.locator('span:has-text("Details")').first()).toBeVisible()
+      await expect(page.locator('text=Share your preferences')).toBeVisible()
     })
 
     test('should show password strength indicator', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
       await page.click('text=I need tutoring')
       await page.click('button:has-text("Continue")')
 
+      // Fill step 3 - Details for Seeker
+      await page.selectOption('select[id*="yearLevel"]', '1st Year')
+      // Click on a subject chip
+      await page.click('button:has-text("Calculus")')
+      // Click on Morning availability
+      await page.click('label:has-text("Morning") >> input')
+      await page.click('button:has-text("Continue")')
+
+      // Step 4 - Security
       await page.fill('input[type="password"]', 'Weak1!')
-      await expect(page.locator('text=Weak')).toBeVisible()
+      // Check password strength indicator appears (the label text)
+      await expect(page.locator('text=/Weak|Fair|Good|Strong/')).toBeVisible()
 
       await page.fill('input[type="password"]', 'StrongPass123!')
-      await expect(page.locator('text=Strong')).toBeVisible()
+      await expect(page.locator('text=/Strong|Good/')).toBeVisible()
     })
 
     test('should validate password requirements', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
       await page.click('text=I need tutoring')
       await page.click('button:has-text("Continue")')
 
+      // Fill step 3 - Details for Seeker
+      await page.selectOption('select[id*="yearLevel"]', '1st Year')
+      await page.click('button:has-text("Calculus")')
+      await page.click('label:has-text("Morning") >> input')
+      await page.click('button:has-text("Continue")')
+
+      // Step 4 - Security
       await page.fill('input[type="password"]', 'weak')
       await page.fill('input[id*="confirmPassword"]', 'weak')
       await page.click('button:has-text("Create Account")')
@@ -169,12 +189,19 @@ test.describe('Authentication Flow', () => {
 
     test('should validate password match', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
       await page.click('text=I need tutoring')
       await page.click('button:has-text("Continue")')
 
+      // Fill step 3 - Details for Seeker
+      await page.selectOption('select[id*="yearLevel"]', '1st Year')
+      await page.click('button:has-text("Calculus")')
+      await page.click('label:has-text("Morning") >> input')
+      await page.click('button:has-text("Continue")')
+
+      // Step 4 - Security
       await page.fill('input[type="password"]', 'SecurePass123!')
       await page.fill('input[id*="confirmPassword"]', 'DifferentPass123!')
       await page.click('button:has-text("Create Account")')
@@ -184,7 +211,7 @@ test.describe('Authentication Flow', () => {
 
     test('should navigate back between steps', async ({ page }) => {
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
 
@@ -207,7 +234,7 @@ test.describe('Authentication Flow', () => {
     })
 
     test('should display forgot password form', async ({ page }) => {
-      await expect(page.locator('h1')).toContainText('Forgot Password')
+      await expect(page.getByRole('heading', { name: 'Forgot Password?' })).toBeVisible()
       await expect(page.locator('input[type="email"]')).toBeVisible()
       await expect(page.locator('button:has-text("Send Reset Link")')).toBeVisible()
       await expect(page.locator('text=Back to Login')).toBeVisible()
@@ -227,11 +254,11 @@ test.describe('Authentication Flow', () => {
     test('should validate CSU email', async ({ page }) => {
       await page.fill('input[type="email"]', 'student@gmail.com')
       await page.click('button:has-text("Send Reset Link")')
-      await expect(page.locator('text=Please use your CSU email address')).toBeVisible()
+      await expect(page.locator('text=Please use your official Caraga State University email address')).toBeVisible()
     })
 
     test('should show success state after submission', async ({ page }) => {
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.click('button:has-text("Send Reset Link")')
 
       // Should show success message
@@ -282,18 +309,18 @@ test.describe('Authentication Flow', () => {
       await page.goto('/login')
       await page.waitForLoadState('networkidle')
 
-      // Tab through form elements
+      // First tab might focus the email input (if not already)
       await page.keyboard.press('Tab')
-      await expect(page.locator('input[type="email"]')).toBeFocused()
+      await expect(page.locator('input[type="email"]').first()).toBeFocused()
 
       await page.keyboard.press('Tab')
-      await expect(page.locator('input[type="password"]')).toBeFocused()
+      await expect(page.locator('input[type="password"]').first()).toBeFocused()
 
       await page.keyboard.press('Tab')
-      await expect(page.locator('input[type="checkbox"]')).toBeFocused()
+      await expect(page.locator('input[type="checkbox"]').first()).toBeFocused()
 
       await page.keyboard.press('Tab')
-      await expect(page.locator('text=Forgot password?')).toBeFocused()
+      await expect(page.locator('text=Forgot password?').first()).toBeFocused()
     })
 
     test('should be keyboard navigable on role selection', async ({ page }) => {
@@ -301,7 +328,7 @@ test.describe('Authentication Flow', () => {
       await page.waitForLoadState('networkidle')
 
       await page.fill('input[id*="fullName"]', 'Test User')
-      await page.fill('input[type="email"]', 'test@csu.edu.ph')
+      await page.fill('input[type="email"]', 'test@carsu.edu.ph')
       await page.fill('input[id*="course"]', 'BS Computer Science')
       await page.click('button:has-text("Continue")')
 

@@ -1,0 +1,34 @@
+/**
+ * Checkbox Component
+ * Based on shadcn/ui checkbox
+ */
+
+import * as React from 'react'
+import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
+import { Check } from 'lucide-react'
+import { cn } from '@/utils'
+
+const Checkbox = React.forwardRef<
+  React.ElementRef<typeof CheckboxPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CheckboxPrimitive.Root
+    ref={ref}
+    className={cn(
+      'peer h-4 w-4 shrink-0 rounded-md border border-sl-border bg-sl-bg-input text-sl-accent-primary',
+      'focus:outline-none focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-main',
+      'disabled:cursor-not-allowed disabled:opacity-50',
+      'data-[state=checked]:bg-sl-accent-primary data-[state=checked]:border-sl-accent-primary',
+      'transition-all duration-200',
+      className
+    )}
+    {...props}
+  >
+    <CheckboxPrimitive.Indicator className={cn('flex items-center justify-center text-current')}>
+      <Check className="h-3.5 w-3.5" />
+    </CheckboxPrimitive.Indicator>
+  </CheckboxPrimitive.Root>
+))
+Checkbox.displayName = CheckboxPrimitive.Root.displayName
+
+export { Checkbox }

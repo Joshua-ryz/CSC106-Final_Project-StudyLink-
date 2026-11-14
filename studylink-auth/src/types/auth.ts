@@ -3,7 +3,7 @@
  * Centralized type definitions for the authentication system
  */
 
-export type UserRole = 'TUTEE' | 'TUTOR' | 'BOTH';
+export type UserRole = 'seeker' | 'tutor' | 'both';
 
 export interface User {
   id: string;
@@ -64,19 +64,19 @@ export interface ValidationError {
   message: string;
 }
 
-// Role display information
+// Role display information - Updated for seeker/tutor/both
 export const ROLE_INFO: Record<UserRole, { title: string; description: string; icon: string }> = {
-  TUTEE: {
+  seeker: {
     title: 'I need tutoring',
     description: 'Find fellow CSU students who can help me understand academic subjects.',
     icon: 'graduation-cap',
   },
-  TUTOR: {
+  tutor: {
     title: 'I want to be a tutor',
     description: 'Share my knowledge and help fellow CSU students with their studies.',
     icon: 'user-check',
   },
-  BOTH: {
+  both: {
     title: 'Both',
     description: 'I want to find tutors and also provide tutoring services.',
     icon: 'users',
@@ -84,9 +84,9 @@ export const ROLE_INFO: Record<UserRole, { title: string; description: string; i
 };
 
 export const ROLE_OPTIONS = [
-  { value: 'TUTEE' as UserRole, label: 'I need tutoring', description: 'Find fellow CSU students who can help me understand academic subjects.' },
-  { value: 'TUTOR' as UserRole, label: 'I want to be a tutor', description: 'Share my knowledge and help fellow CSU students with their studies.' },
-  { value: 'BOTH' as UserRole, label: 'Both', description: 'I want to find tutors and also provide tutoring services.' },
+  { value: 'seeker' as UserRole, label: 'I need tutoring', description: 'Find fellow CSU students who can help me understand academic subjects.' },
+  { value: 'tutor' as UserRole, label: 'I want to be a tutor', description: 'Share my knowledge and help fellow CSU students with their studies.' },
+  { value: 'both' as UserRole, label: 'Both', description: 'I want to find tutors and also provide tutoring services.' },
 ];
 
 // Password requirements

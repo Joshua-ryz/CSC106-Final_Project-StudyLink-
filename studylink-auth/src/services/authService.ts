@@ -68,6 +68,16 @@ interface RegisterRequest {
   password: string
   course: string
   role: UserRole
+  // Student details (for seeker/both)
+  yearLevel?: string
+  subjectsNeedHelp?: string
+  // Tutor details (for tutor/both)
+  subjectsCanTutor?: string
+  expertiseLevels?: { beginner: boolean; intermediate: boolean; advanced: boolean }
+  // Shared
+  availability: { morning: boolean; afternoon: boolean; evening: boolean }
+  goal?: string
+  about?: string
 }
 
 export async function register(data: RegisterRequest): Promise<RegisterResponse> {
@@ -78,6 +88,13 @@ export async function register(data: RegisterRequest): Promise<RegisterResponse>
       password: data.password,
       course: data.course,
       role: data.role,
+      yearLevel: data.yearLevel,
+      subjectsNeedHelp: data.subjectsNeedHelp,
+      subjectsCanTutor: data.subjectsCanTutor,
+      expertiseLevels: data.expertiseLevels,
+      availability: data.availability,
+      goal: data.goal,
+      about: data.about,
     })
     return response
   } catch (error) {

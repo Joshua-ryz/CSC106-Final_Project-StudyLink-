@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest'
 import {
   loginSchema,
   registerStep1Schema,
-  registerStep2Schema,
+  registerStep4Schema,
   roleSelectionSchema,
   forgotPasswordSchema,
   getPasswordStrength,
@@ -17,7 +17,7 @@ describe('Validation Schemas', () => {
   describe('loginSchema', () => {
     it('validates correct email and password', () => {
       const result = loginSchema.safeParse({
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
         password: 'password123',
         rememberMe: true,
       })
@@ -32,8 +32,16 @@ describe('Validation Schemas', () => {
       expect(result.success).toBe(false)
       if (!result.success) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        expect((result.error as any).issues[0].message).toContain('CSU')
+        expect((result.error as any).issues[0].message).toContain('Caraga State University')
       }
+    })
+
+    it('rejects old csu.edu.ph domain', () => {
+      const result = loginSchema.safeParse({
+        email: 'student@csu.edu.ph',
+        password: 'password123',
+      })
+      expect(result.success).toBe(false)
     })
 
     it('rejects empty email', () => {
@@ -46,7 +54,7 @@ describe('Validation Schemas', () => {
 
     it('rejects empty password', () => {
       const result = loginSchema.safeParse({
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
         password: '',
       })
       expect(result.success).toBe(false)
@@ -65,7 +73,7 @@ describe('Validation Schemas', () => {
     it('validates correct personal info', () => {
       const result = registerStep1Schema.safeParse({
         fullName: 'Juan Dela Cruz',
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
         course: 'BS Computer Science',
       })
       expect(result.success).toBe(true)
@@ -74,7 +82,7 @@ describe('Validation Schemas', () => {
     it('rejects short name', () => {
       const result = registerStep1Schema.safeParse({
         fullName: 'J',
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
         course: 'BS Computer Science',
       })
       expect(result.success).toBe(false)
@@ -83,7 +91,7 @@ describe('Validation Schemas', () => {
     it('rejects invalid name characters', () => {
       const result = registerStep1Schema.safeParse({
         fullName: 'Juan123',
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
         course: 'BS Computer Science',
       })
       expect(result.success).toBe(false)
@@ -98,19 +106,28 @@ describe('Validation Schemas', () => {
       expect(result.success).toBe(false)
     })
 
-    it('rejects empty course', () => {
+    it('rejects old csu.edu.ph domain', () => {
       const result = registerStep1Schema.safeParse({
         fullName: 'Juan Dela Cruz',
         email: 'student@csu.edu.ph',
+        course: 'BS Computer Science',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects empty course', () => {
+      const result = registerStep1Schema.safeParse({
+        fullName: 'Juan Dela Cruz',
+        email: 'student@carsu.edu.ph',
         course: '',
       })
       expect(result.success).toBe(false)
     })
   })
 
-  describe('registerStep2Schema', () => {
+  describe('registerStep4Schema', () => {
     it('validates matching passwords with requirements', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'SecurePass123!',
         confirmPassword: 'SecurePass123!',
       })
@@ -118,7 +135,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects mismatched passwords', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'SecurePass123!',
         confirmPassword: 'DifferentPass123!',
       })
@@ -130,7 +147,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects password too short', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'Pass1!',
         confirmPassword: 'Pass1!',
       })
@@ -138,7 +155,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects password without uppercase', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'securepass123!',
         confirmPassword: 'securepass123!',
       })
@@ -146,7 +163,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects password without lowercase', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'SECUREPASS123!',
         confirmPassword: 'SECUREPASS123!',
       })
@@ -154,7 +171,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects password without number', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'SecurePass!',
         confirmPassword: 'SecurePass!',
       })
@@ -162,7 +179,7 @@ describe('Validation Schemas', () => {
     })
 
     it('rejects password without special character', () => {
-      const result = registerStep2Schema.safeParse({
+      const result = registerStep4Schema.safeParse({
         password: 'SecurePass123',
         confirmPassword: 'SecurePass123',
       })
@@ -171,18 +188,18 @@ describe('Validation Schemas', () => {
   })
 
   describe('roleSelectionSchema', () => {
-    it('accepts TUTEE role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'TUTEE' })
+    it('accepts seeker role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'seeker' })
       expect(result.success).toBe(true)
     })
 
-    it('accepts TUTOR role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'TUTOR' })
+    it('accepts tutor role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'tutor' })
       expect(result.success).toBe(true)
     })
 
-    it('accepts BOTH role', () => {
-      const result = roleSelectionSchema.safeParse({ role: 'BOTH' })
+    it('accepts both role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'both' })
       expect(result.success).toBe(true)
     })
 
@@ -195,12 +212,27 @@ describe('Validation Schemas', () => {
       const result = roleSelectionSchema.safeParse({ role: '' })
       expect(result.success).toBe(false)
     })
+
+    it('rejects old TUTEE role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'TUTEE' })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects old TUTOR role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'TUTOR' })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects old BOTH role', () => {
+      const result = roleSelectionSchema.safeParse({ role: 'BOTH' })
+      expect(result.success).toBe(false)
+    })
   })
 
   describe('forgotPasswordSchema', () => {
     it('validates correct CSU email', () => {
       const result = forgotPasswordSchema.safeParse({
-        email: 'student@csu.edu.ph',
+        email: 'student@carsu.edu.ph',
       })
       expect(result.success).toBe(true)
     })
@@ -208,6 +240,13 @@ describe('Validation Schemas', () => {
     it('rejects non-CSU email', () => {
       const result = forgotPasswordSchema.safeParse({
         email: 'student@gmail.com',
+      })
+      expect(result.success).toBe(false)
+    })
+
+    it('rejects old csu.edu.ph domain', () => {
+      const result = forgotPasswordSchema.safeParse({
+        email: 'student@csu.edu.ph',
       })
       expect(result.success).toBe(false)
     })

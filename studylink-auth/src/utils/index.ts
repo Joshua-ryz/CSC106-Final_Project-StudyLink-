@@ -66,7 +66,7 @@ export function isValidEmail(email: string): boolean {
  * Validate CSU email domain
  */
 export function isCsuEmail(email: string): boolean {
-  return email.toLowerCase().endsWith('@csu.edu.ph')
+  return email.toLowerCase().endsWith('@carsu.edu.ph')
 }
 
 /**

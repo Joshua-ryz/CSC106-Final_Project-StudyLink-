@@ -1,0 +1,632 @@
+/**
+ * SignUp Page
+ * Multi-step registration: Personal Info → Role → Details → Security
+ * NFR-004 NFR-005 NFR-011 references
+ */
+
+import { useState, useEffect, Fragment } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Mail, User, GraduationCap, Lock, ArrowRight, ArrowLeft, CheckCircle, Award, Target, Calendar, UserCheck, Check } from 'lucide-react'
+import { registerSchema, type RegisterFormData, getPasswordStrength, PASSWORD_REQUIREMENTS } from '@/utils/validation'
+import { register as registerUser } from '@/services/authService'
+import { useAuth } from '@/hooks/useAuth'
+import { useToast } from '@/components/ui/toaster'
+import {
+  AuthLayout,
+  InputField,
+  RoleSelector,
+  PrimaryButton,
+  SubjectCard,
+  SubjectGrid,
+  subjects,
+  tutorSubjects,
+  studentSubjects,
+  YearLevelSelect,
+  AvailabilityPicker,
+  Button,
+} from '@/components'
+import { cn } from '@/utils'
+
+type FormData = RegisterFormData
+
+const steps = [
+  { id: 1, title: 'Personal Info', description: 'Tell us about yourself' },
+  { id: 2, title: 'Role', description: 'How will you use StudyLink?' },
+  { id: 3, title: 'Details', description: 'Share your preferences' },
+  { id: 4, title: 'Security', description: 'Secure your account' },
+]
+
+function getStrengthBgColor(textColor: string): string {
+  const colorMap: Record<string, string> = {
+    'text-sl-error': 'var(--color-sl-error)',
+    'text-yellow-500': 'var(--color-sl-warning)',
+    'text-sl-accent-secondary': 'var(--color-sl-accent-secondary)',
+    'text-sl-success': 'var(--color-sl-success)',
+  }
+  return colorMap[textColor] || 'var(--color-sl-accent-primary)'
+}
+
+export function SignUp() {
+  const navigate = useNavigate()
+  const { login: setAuthUser, setLoading } = useAuth()
+  const { toast } = useToast()
+  const [currentStep, setCurrentStep] = useState(1)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: number
+    label: string
+    color: string
+    passedRequirements: string[]
+    failedRequirements: string[]
+  }>({ score: 0, label: '', color: '', passedRequirements: [], failedRequirements: [] })
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+    setError,
+      clearErrors,
+      trigger,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema) as any,
+    defaultValues: {
+      fullName: '',
+      email: '',
+      course: '',
+      password: '',
+      confirmPassword: '',
+      role: undefined,
+      yearLevel: '',
+      subjectsNeedHelp: '',
+      subjectsCanTutor: '',
+      expertiseLevels: { beginner: false, intermediate: false, advanced: false },
+      availability: { morning: false, afternoon: false, evening: false },
+      goal: '',
+      about: '',
+    },
+    mode: 'onChange',
+  })
+
+  const watchedPassword = watch('password')
+  const watchedRole = watch('role')
+  const watchedAvailability = watch('availability')
+  const watchedExpertiseLevels = watch('expertiseLevels')
+
+  // Update password strength when password changes
+  useEffect(() => {
+    if (watchedPassword) {
+      setPasswordStrength(getPasswordStrength(watchedPassword))
+    } else {
+      setPasswordStrength({ score: 0, label: '', color: '', passedRequirements: [], failedRequirements: [] })
+    }
+  }, [watchedPassword])
+
+  const getNextStep = () => {
+    if (currentStep < steps.length) {
+      return currentStep + 1
+    }
+    return currentStep
+  }
+
+  const getPrevStep = () => {
+    if (currentStep > 1) {
+      return currentStep - 1
+    }
+    return currentStep
+  }
+
+  const nextStep = async () => {
+    let fieldsToValidate: Array<keyof FormData> = []
+
+    switch (currentStep) {
+      case 1:
+      fieldsToValidate = ['fullName', 'email', 'course']
+        break
+      case 2:
+        fieldsToValidate = ['role']
+        break
+      case 3:
+        if (watchedRole === 'seeker') {
+          fieldsToValidate = ['yearLevel', 'subjectsNeedHelp', 'availability']
+        } else if (watchedRole === 'tutor') {
+          fieldsToValidate = ['subjectsCanTutor', 'expertiseLevels', 'availability']
+        } else if (watchedRole === 'both') {
+          fieldsToValidate = ['yearLevel', 'subjectsNeedHelp', 'subjectsCanTutor', 'expertiseLevels', 'availability']
+        }
+        break
+      case 4:
+        fieldsToValidate = ['password', 'confirmPassword']
+        break
+    }
+
+    const isValid = await trigger(fieldsToValidate)
+    if (isValid && currentStep < steps.length) {
+      setCurrentStep(getNextStep())
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(getPrevStep())
+    }
+  }
+
+  const onSubmit = async (data: any) => {
+    setIsSubmitting(true)
+    setLoading(true)
+    clearErrors()
+
+    try {
+      const response = await registerUser({
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
+        course: data.course,
+        role: data.role,
+        yearLevel: data.yearLevel,
+        subjectsNeedHelp: data.subjectsNeedHelp,
+        subjectsCanTutor: data.subjectsCanTutor,
+        expertiseLevels: data.expertiseLevels,
+        availability: data.availability,
+        goal: data.goal,
+        about: data.about,
+      })
+
+      setAuthUser(response.user)
+
+      toast({
+        title: 'Account Created!',
+        description: `Welcome to StudyLink, ${response.user.fullName}!`,
+        variant: 'success',
+        onClose: () => {},
+      })
+
+      navigate('/dashboard')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Registration failed. Please try again.'
+      if (message.includes('email') || message.includes('Email')) {
+        setError('email', { type: 'manual', message })
+      } else {
+        toast({
+        title: 'Registration Failed',
+        description: message,
+        variant: 'error',
+        onClose: () => {},
+      })
+      }
+    } finally {
+      setIsSubmitting(false)
+      setLoading(false)
+    }
+  }
+
+  const renderStep1 = () => (
+    <div className="space-y-5 animate-in slide-up">
+      <InputField
+        label="Full Name"
+        type="text"
+        placeholder="Juan Dela Cruz"
+        error={errors.fullName?.message}
+        leftIcon={<User className="w-5 h-5" />}
+        autoComplete="name"
+        id="fullName"
+        {...register('fullName')}
+      />
+
+      <InputField
+        label="CSU Email Address"
+        type="email"
+        placeholder="student@carsu.edu.ph"
+        error={errors.email?.message}
+        leftIcon={<Mail className="w-5 h-5" />}
+        autoComplete="email"
+        id="email"
+        {...register('email')}
+      />
+
+      <InputField
+        label="Course / Program"
+        type="text"
+        placeholder="e.g., BS Computer Science"
+        error={errors.course?.message}
+        leftIcon={<GraduationCap className="w-5 h-5" />}
+        autoComplete="off"
+        id="course"
+        {...register('course')}
+      />
+    </div>
+  )
+
+  const renderStep2 = () => (
+    <div className="animate-in slide-up">
+      <RoleSelector
+        value={watchedRole}
+        onChange={(role) => setValue('role', role, { shouldValidate: true })}
+        error={errors.role?.message}
+      />
+    </div>
+  )
+
+  const renderStep3 = () => {
+    const isSeeker = watchedRole === 'seeker'
+    const isTutor = watchedRole === 'tutor'
+    const isBoth = watchedRole === 'both'
+
+    const subtitle = isSeeker
+      ? 'Help us match you with the right tutors'
+      : isTutor
+      ? 'Help students find you by sharing your expertise'
+      : 'Tell us about both your learning needs and tutoring expertise'
+
+    const handledSubjectsNeedHelp = (subjectsCanTutorValue: string) => {
+        const tutorSubjectsList = subjectsCanTutorValue
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean)
+        return SubjectGrid({
+            selectedSubjects: subjectsCanTutorValue.split(',').map(s => s.trim()).filter(Boolean),
+            onSubjectChange: (selected) => setValue('subjectsCanTutor', selected.join(', ')),
+            disabledSubjects: subjectsNeedHelpValue.split(',').map(s => s.trim()).filter(Boolean),
+        })
+    }
+
+    const handledSubjectsCanTutor = (subjectsNeedHelpValue: string) => {
+        return SubjectGrid({
+            selectedSubjects: subjectsNeedHelpValue.split(',').map(s => s.trim()).filter(Boolean),
+            onSubjectChange: (selected) => setValue('subjectsCanTutor', selected.join(', ')),
+            disabledSubjects: subjectsNeedHelpValue.split(',').map(s => s.trim()).filter(Boolean),
+        })
+    }
+
+    const subjectsNeedHelpValue = watchedRole === 'both' || watchedRole === 'seeker' ? watch('subjectsNeedHelp') || '' : ''
+    const subjectsCanTutorValue = watchedRole === 'both' || watchedRole === 'tutor' ? watch('subjectsCanTutor') || '' : ''
+
+    return (
+      <div className="space-y-6 animate-in slide-up">
+        <p className="text-sm text-sl-text-secondary mb-2">{subtitle}</p>
+
+        {/* Student Details Section - shown for seeker and both */}
+        {(isSeeker || isBoth) && (
+          <fieldset className="space-y-5 p-5 bg-sl-bg-input/30 border border-sl-border/50 rounded-xl">
+            <legend className="flex items-center gap-2 text-base font-semibold text-sl-text-primary">
+              <GraduationCap className="w-5 h-5 text-sl-accent-primary" aria-hidden="true" />
+              Student Details
+            </legend>
+
+            <YearLevelSelect
+                label="Year Level"
+                placeholder="e.g., 2nd Year, 3rd Year, Graduate"
+                error={errors.yearLevel?.message}
+                leftIcon={<Calendar className="w-5 h-5" />}
+                autoComplete="off"
+                id="yearLevel"
+                {...register('yearLevel')}
+            />
+
+            <div className="space-y-2">
+                <label className="block mb-2 text-sm font-medium text-sl-text-primary">
+                  Subjects You Need Help With
+                  <span className="text-sl-error" aria-hidden="true">*</span>
+                </label>
+                <p className="text-xs text-sl-text-muted">Separate subjects with commas (e.g., "Calculus, Physics, Programming")</p>
+            <SubjectGrid
+                      selectedSubjects={subjectsNeedHelpValue.split(',').map(s => s.trim()).filter(Boolean)}
+                  onSubjectChange={(selected) => setValue('subjectsNeedHelp', selected.join(', '))}
+                      disabledSubjects={subjectsCanTutorValue.split(',').map(s => s.trim()).filter(Boolean)}
+                      required={isSeeker || isBoth}
+                />
+            </div>
+
+            <AvailabilityPicker
+                label="Availability"
+                value={watchedAvailability}
+                onChange={(avail) => setValue('availability', avail, { shouldValidate: true })}
+                  disabled={watchedRole === 'both'}
+                error={errors.availability?.message}
+            />
+
+            <InputField
+                label="Learning Goal (Optional)"
+                type="text"
+                placeholder="e.g., Improve my grades in Calculus, Prepare for final exams"
+                error={errors.goal?.message}
+                leftIcon={<Target className="w-5 h-5" />}
+                autoComplete="off"
+                id="goal"
+                {...register('goal')}
+            />
+          </fieldset>
+        )}
+
+        {/* Tutor Details Section - shown for tutor and both */}
+        {(isTutor || isBoth) && (
+          <fieldset className="space-y-5 p-5 bg-sl-bg-input/30 border border-sl-border/50 rounded-xl">
+            <legend className="flex items-center gap-2 text-base font-semibold text-sl-text-primary">
+              <UserCheck className="w-5 h-5 text-sl-accent-secondary" aria-hidden="true" />
+              Tutor Details
+            </legend>
+
+            <div className="space-y-2">
+              <label className="block mb-2 text-sm font-medium text-sl-text-primary">
+                  Subjects You Can Tutor
+                  <span className="text-sl-error" aria-hidden="true">*</span>
+                </label>
+                <p className="text-xs text-sl-text-muted">Separate subjects with commas (e.g., "Calculus, Physics, Programming")</p>
+                <SubjectGrid
+                  selectedSubjects={subjectsCanTutorValue.split(',').map(s => s.trim()).filter(Boolean)}
+                  onSubjectChange={(selected) => setValue('subjectsCanTutor', selected.join(', '))}
+                  disabledSubjects={subjectsNeedHelpValue.split(',').map(s => s.trim()).filter(Boolean)}
+                  required={isTutor || isBoth}
+                />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block mb-2 text-sm font-medium text-sl-text-primary">
+                  Expertise Levels
+                  <span className="text-sl-error" aria-hidden="true">*</span>
+                </label>
+              <p className="text-xs text-sl-text-muted">Select all expertise levels you can teach</p>
+              <div className="grid grid-cols-3 gap-3" role="group" aria-label="Expertise levels">
+                  {(['beginner', 'intermediate', 'advanced'] as const).map((level, index) => {
+                  const levelLabel = level.charAt(0).toUpperCase() + level.slice(1)
+                return (
+                    <label
+                      key={level}
+                        className={cn(
+                            'relative flex items-center gap-2 cursor-pointer p-3 rounded-xl border-2 transition-all duration-200',
+                            'hover:border-sl-accent-secondary/50 hover:bg-sl-accent-secondary/10',
+                            'focus-within:ring-2 focus-within:ring-sl-accent-secondary focus-within:ring-offset-2 focus-within:ring-offset-sl-bg-main',
+                            watchedExpertiseLevels?.[level] && 'border-sl-accent-secondary bg-sl-accent-secondary/20',
+                        )}
+                        >
+                        <input
+                          type="checkbox"
+                          checked={watchedExpertiseLevels?.[level] || false}
+                          onChange={(e) => setValue('expertiseLevels', { ...watchedExpertiseLevels, [level]: e.target.checked }, { shouldValidate: true })}
+                          disabled={watchedRole === 'both' && false}
+                          className={cn(
+                            'appearance-none h-5 w-5 rounded-md border border-sl-border bg-sl-bg-input text-sl-accent-secondary transition-all duration-200',
+                            'checked:bg-sl-accent-secondary checked:border-sl-accent-secondary',
+                            'focus:outline-none focus:ring-2 focus:ring-sl-accent-secondary focus:ring-offset-2 focus:ring-offset-sl-bg-main',
+                          )}
+                          aria-label={`${levelLabel} expertise`}
+                    />
+                    <span className="text-sm font-medium text-sl-text-primary capitalize">{levelLabel}</span>
+                    <div className={cn(
+                          'absolute right-2 top-2 w-5 h-5 rounded-full flex items-center justify_center',
+                          watchedExpertiseLevels?.[level] ? 'bg-sl-accent-secondary text-white' : 'bg-transparent'
+                        )}
+                    aria-hidden="true"
+                        >
+                          <Check className="w-3 h-3" />
+                    </div>
+                      </label>
+                )
+              })}
+              </div>
+              {errors.expertiseLevels && (
+                <p className="text-sm text-sl-error flex items-center gap-1" role="alert">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  {errors.expertiseLevels.message}
+                </p>
+              )}
+            </div>
+
+            <AvailabilityPicker
+              label="Tutor Availability"
+                value={watchedAvailability}
+                onChange={(avail) => setValue('availability', avail, { shouldValidate: true })}
+                  disabled={watchedRole === 'both'}
+                error={errors.availability?.message}
+            />
+
+            <InputField
+                label="About You (Optional)"
+                type="text"
+                placeholder="e.g., Dean's Lister, 3.8 GPA, Teaching Assistant for CS101, 2 years tutoring experience"
+                error={errors.about?.message}
+                leftIcon={<Award className="w-5 h-5" />}
+                autoComplete="off"
+                id="about"
+                {...register('about')}
+            />
+          </fieldset>
+        )}
+
+        {/* Duplicate validation error for both role */}
+        {isBoth && errors.subjectsCanTutor && (
+          <p className="error-text" role="alert">
+            <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 ve1102V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            {errors.subjectsCanTutor.message}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  const renderStep4 = () => (
+    <div className="space-y-5 animate-in slide-up">
+      <InputField
+        label="Password"
+        type="password"
+        placeholder="Create a strong password"
+        error={errors.password?.message}
+        leftIcon={<Lock className="w-5 h-5" />}
+        showPasswordToggle
+        autoComplete="new-password"
+        id="password"
+        {...register('password')}
+      />
+
+      {watchedPassword && (
+        <div className="mt-3 p-4 bg-sl-bg-input/50 border border-sl-border/50 rounded-xl animate-in slide-down" role="region" aria-label="Password requirements">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 h-1.5 bg-sl-border rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-300"
+                style={{
+                  width: `${(passwordStrength.score / PASSWORD_REQUIREMENTS.length) * 100}%`,
+                  backgroundColor: getStrengthBgColor(passwordStrength.color),
+                }}
+              />
+            </div>
+            <span className={cn('text-sm font-medium', passwordStrength.color)}>{passwordStrength.label}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 text-xs">
+            {PASSWORD_REQUIREMENTS.map((req, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-1.5"
+                style={{ color: passwordStrength.passedRequirements.includes(req.label) ? 'var(--color-sl-success)' : 'var(--color-sl-text-secondary)' }}
+              >
+                <CheckCircle
+                  className={cn('w-3.5 h-3.5 flex-shrink-0', passwordStrength.passedRequirements.includes(req.label) ? 'text-sl-success' : 'text-sl-border')}
+                  aria-hidden="true"
+                />
+                <span className={passwordStrength.passedRequirements.includes(req.label) ? 'line-through' : ''}>
+                  {req.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )
+
+      <InputField
+        label="Confirm Password"
+        type="password"
+        placeholder="Confirm your password"
+        error={errors.confirmPassword?.message}
+        leftIcon={<Lock className="w-5 h-5" />}
+        showPasswordToggle
+        autoComplete="new-password"
+        id="confirmPassword"
+        {...register('confirmPassword')}
+      />
+    </div>
+  )
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return renderStep1()
+      case 2:
+        return renderStep2()
+      case 3:
+        return renderStep3()
+      case 4:
+        return renderStep4()
+      default:
+        return null
+    }
+  }
+
+  return (
+      <AuthLayout>
+        <div className="card-auth">
+          {/* Progress Indicator */}
+          <div className="mb-8 animate-in slide-up">
+            <div className="flex items-center justify-between">
+              {steps.map((step, index) => (
+                <Fragment key={step.id}>
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300',
+                        currentStep > step.id
+                          ? 'bg-sl-accent-primary text-white'
+                          : currentStep === step.id
+                          ? 'bg-sl-accent-primary/20 text-sl-accent-primary border-2 border-sl-accent-primary'
+                          : 'bg-sl-bg-input text-sl-text-secondary/50 border-2 border-sl-border'
+                      )}
+                    >
+                      {currentStep > step.id ? (
+                        <CheckCircle className="w-5 h-5" />
+                      ) : (
+                        step.id
+                      )}
+                    </div>
+                    <span className={cn('mt-2 text-xs text-center max-w-[70px]', currentStep >= step.id ? 'text-sl-text-primary font-medium' : 'text-sl-text-secondary')}>
+                      {step.title}
+                    </span>
+                  </div>
+                    {index < steps.length - 1 && (
+                    <div
+                        className={cn(
+                          'flex-1 h-1 mx-2 rounded-full',
+                          currentStep > step.id
+                            ? 'bg-sl-accent-primary'
+                            : 'bg-sl-border'
+                        )}
+                      />
+                  )}
+                  </Fragment>
+                ))}
+              </div>
+            <p className="mt-4 text-center text-sm text-sl-text-secondary">
+              Step {currentStep} of {steps.length}: {steps[currentStep - 1].description}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y_5" noValidate>
+            {renderStepContent()}
+
+            {/* Navigation Buttons */}
+            <div className="flex items-center justify-between pt-4 mt-4 border-t border-sl-border animate-in slide-up">
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={prevStep}
+                  disabled={isSubmitting}
+                  iconLeft={<ArrowLeft className="w-4 h-4" aria-hidden="true" />}
+                >
+                  Back
+                </Button>
+              )
+
+              <div className="flex-1"></div>
+
+              {currentStep < steps.length ? (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="md"
+                  onClick={nextStep}
+                  disabled={isSubmitting}
+                  iconRight={<ArrowRight className="w-4 h-4" aria-hidden="true" />}
+                >
+                  Continue
+                </Button>
+              ) : (
+                <PrimaryButton
+                  type="submit"
+                  loading={isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                    Create Account
+                    <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
+                </PrimaryButton>
+              )}
+            </div>
+          </form>
+
+          <p className="mt-8 text-center text-sl-text-secondary animate-in slide-up" style={{ animationDelay: '0.3s' }}>
+            Already have an account?{' '}
+            <Link to="/login" className="link-text">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </AuthLayout>
+    )
+}

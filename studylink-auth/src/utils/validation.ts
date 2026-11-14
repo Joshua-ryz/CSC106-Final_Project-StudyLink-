@@ -1,5 +1,31 @@
 import { z } from 'zod'
-import { MIN_PASSWORD_LENGTH, PASSWORD_REQUIREMENTS } from '@/types/auth'
+import { MIN_PASSWORD_LENGTH, PASSWORD_REQUIREMENTS, UserRole } from '@/types/auth'
+
+// Helper to validate subject arrays (at least one subject)
+const subjectArraySchema = z.array(z.string()).min(1, 'Please select at least one subject')
+
+// Helper to validate expertise levels (at least one for tutor)
+const expertiseLevelsSchema = z.object({
+  beginner: z.boolean().default(false),
+  intermediate: z.boolean().default(false),
+  advanced: z.boolean().default(false),
+}).refine(
+  (data) => data.beginner || data.intermediate || data.advanced,
+  { message: 'Please select at least one expertise level', path: ['expertiseLevels'] }
+)
+
+// Helper to validate availability (at least one slot)
+const availabilitySchema = z.object({
+  morning: z.boolean().default(false),
+  afternoon: z.boolean().default(false),
+  evening: z.boolean().default(false),
+}).refine(
+  (data) => data.morning || data.afternoon || data.evening,
+  { message: 'Please select at least one availability slot', path: ['availability'] }
+)
+
+const CSU_EMAIL_DOMAIN = '@carsu.edu.ph'
+const CSU_EMAIL_ERROR = `Please use your official Caraga State University email address (${CSU_EMAIL_DOMAIN}) to register.`
 
 /**
  * Zod schema for login form validation
@@ -10,8 +36,8 @@ export const loginSchema = z.object({
     .min(1, 'Email is required')
     .email('Please enter a valid email address')
     .refine(
-      (email) => email.toLowerCase().endsWith('@csu.edu.ph'),
-      'Please use your CSU email address (@csu.edu.ph)'
+      (email) => email.toLowerCase().endsWith(CSU_EMAIL_DOMAIN),
+      CSU_EMAIL_ERROR
     ),
   password: z
     .string()
@@ -36,8 +62,8 @@ export const registerStep1Schema = z.object({
     .min(1, 'Email is required')
     .email('Please enter a valid email address')
     .refine(
-      (email) => email.toLowerCase().endsWith('@csu.edu.ph'),
-      'Please use your CSU email address (@csu.edu.ph)'
+      (email) => email.toLowerCase().endsWith(CSU_EMAIL_DOMAIN),
+      CSU_EMAIL_ERROR
     ),
   course: z
     .string()
@@ -49,9 +75,46 @@ export const registerStep1Schema = z.object({
 export type RegisterStep1Data = z.infer<typeof registerStep1Schema>
 
 /**
- * Zod schema for registration form validation (step 2 - password)
+ * Zod schema for registration form validation (step 2 - role selection)
  */
-export const registerStep2Schema = z.object({
+export const roleSelectionSchema = z.object({
+  role: z.enum<[UserRole, ...UserRole[]]>(['seeker', 'tutor', 'both'], {
+    message: 'Please select an account role',
+  }),
+})
+
+export type RoleSelectionData = z.infer<typeof roleSelectionSchema>
+
+/**
+ * Student Details schema (Step 3 for seeker and both roles)
+ */
+export const studentDetailsSchema = z.object({
+  yearLevel: z.string().min(1, 'Year level is required'),
+  college: z.string().optional(),
+  subjectsNeedHelp: subjectArraySchema,
+  studentAvailability: availabilitySchema,
+  goal: z.string().optional(),
+})
+
+export type StudentDetailsData = z.infer<typeof studentDetailsSchema>
+
+/**
+ * Tutor Details schema (Step 3 for tutor and both roles)
+ */
+export const tutorDetailsSchema = z.object({
+  college: z.string().optional(),
+  subjectsCanTutor: subjectArraySchema,
+  expertiseLevels: expertiseLevelsSchema,
+  tutorAvailability: availabilitySchema,
+  about: z.string().optional(),
+})
+
+export type TutorDetailsData = z.infer<typeof tutorDetailsSchema>
+
+/**
+ * Zod schema for registration form validation (step 4 - security)
+ */
+export const registerStep4Schema = z.object({
   password: z
     .string()
     .min(1, 'Password is required')
@@ -68,29 +131,69 @@ export const registerStep2Schema = z.object({
   path: ['confirmPassword'],
 })
 
-export type RegisterStep2Data = z.infer<typeof registerStep2Schema>
-
-/**
- * Zod schema for role selection
- */
-type RoleValue = 'TUTEE' | 'TUTOR' | 'BOTH'
-
-export const roleSelectionSchema = z.object({
-  role: z.enum<[RoleValue, ...RoleValue[]]>(['TUTEE', 'TUTOR', 'BOTH'], {
-    message: 'Please select an account role',
-  }),
-})
-
-export type RoleSelectionData = z.infer<typeof roleSelectionSchema>
+export type RegisterStep4Data = z.infer<typeof registerStep4Schema>
 
 /**
  * Complete registration schema (all steps combined)
- * Using safeExtend to combine schemas with refinements (Zod v4 compatible)
  */
-export const registerSchema = registerStep1Schema.extend(registerStep2Schema.shape).extend(roleSelectionSchema.shape).refine(
-  (data) => data.password === data.confirmPassword,
-  { message: 'Passwords do not match', path: ['confirmPassword'] }
-)
+export const registerSchema = registerStep1Schema
+  .extend(roleSelectionSchema.shape)
+  .extend(studentDetailsSchema.shape)
+  .extend(tutorDetailsSchema.shape)
+  .extend(registerStep4Schema.shape)
+  // Add college field (shared between student and tutor)
+  .extend({
+    college: z.string().optional(),
+  })
+  .refine(
+    (data) => data.password === data.confirmPassword,
+    { message: 'Passwords do not match', path: ['confirmPassword'] }
+  )
+  // Conditional validation: tutor and both roles require tutor fields
+  .refine(
+    (data) => {
+      if (data.role === 'tutor' || data.role === 'both') {
+        // At least one subject is required (array check)
+        if (!data.subjectsCanTutor || data.subjectsCanTutor.length === 0) return false
+        // At least one availability slot is required
+        if (!data.tutorAvailability || (!data.tutorAvailability.morning && !data.tutorAvailability.afternoon && !data.tutorAvailability.evening)) return false
+      }
+      return true
+    },
+    { message: 'Tutor role requires at least one subject and one availability slot', path: ['subjectsCanTutor'] }
+  )
+  // Conditional validation: seeker and both roles require student fields
+  .refine(
+    (data) => {
+      if (data.role === 'seeker' || data.role === 'both') {
+        // At least one subject is required (array check)
+        if (!data.subjectsNeedHelp || data.subjectsNeedHelp.length === 0) return false
+        // Year level is required
+        if (!data.yearLevel || data.yearLevel.trim() === '') return false
+        // At least one availability slot is required
+        if (!data.studentAvailability || (!data.studentAvailability.morning && !data.studentAvailability.afternoon && !data.studentAvailability.evening)) return false
+      }
+      return true
+    },
+    { message: 'Student role requires year level, at least one subject, and one availability slot', path: ['subjectsNeedHelp'] }
+  )
+  // Duplicate validation: when role is both, student subjects and tutor subjects must not have duplicates
+  .refine(
+    (data) => {
+      if (data.role === 'both') {
+        const studentSubjects = (data.subjectsNeedHelp || [])
+          .map(s => s.trim().toLowerCase())
+          .filter(Boolean)
+        const tutorSubjects = (data.subjectsCanTutor || [])
+          .map(s => s.trim().toLowerCase())
+          .filter(Boolean)
+        const duplicates = studentSubjects.filter(s => tutorSubjects.includes(s))
+        return duplicates.length === 0
+      }
+      return true
+    },
+    { message: 'Subjects cannot appear in both "Subjects you need help with" and "Subjects you can tutor"', path: ['subjectsCanTutor'] }
+  )
 
 export type RegisterFormData = z.infer<typeof registerSchema>
 
@@ -103,8 +206,8 @@ export const forgotPasswordSchema = z.object({
     .min(1, 'Email is required')
     .email('Please enter a valid email address')
     .refine(
-      (email) => email.toLowerCase().endsWith('@csu.edu.ph'),
-      'Please use your CSU email address (@csu.edu.ph)'
+      (email) => email.toLowerCase().endsWith(CSU_EMAIL_DOMAIN),
+      CSU_EMAIL_ERROR
     ),
 })
 

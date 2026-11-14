@@ -17,15 +17,26 @@ import { env } from '../config/env'
 const router = Router()
 
 // Validation schemas
+const CSU_EMAIL_DOMAIN = '@carsu.edu.ph'
+const CSU_EMAIL_ERROR = `Please use your official Caraga State University email address (${CSU_EMAIL_DOMAIN}) to register.`
+
 const loginSchema = z.object({
-  email: z.string().email('Invalid email format').toLowerCase(),
+  email: z
+    .string()
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((email) => email.endsWith(CSU_EMAIL_DOMAIN), CSU_EMAIL_ERROR),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().optional(),
 })
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Full name must be at least 2 characters').max(100),
-  email: z.string().email('Invalid email format').toLowerCase(),
+  email: z
+    .string()
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((email) => email.endsWith(CSU_EMAIL_DOMAIN), CSU_EMAIL_ERROR),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -35,14 +46,83 @@ const registerSchema = z.object({
     .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
   confirmPassword: z.string(),
   course: z.string().min(2, 'Course must be at least 2 characters').max(100),
-  role: z.enum(['TUTEE', 'TUTOR', 'BOTH']),
+  role: z.enum(['seeker', 'tutor', 'both']),
+  // Student details (for seeker/both)
+  yearLevel: z.string().optional().default(''),
+  subjectsNeedHelp: z.string().optional().default(''),
+  // Tutor details (for tutor/both)
+  subjectsCanTutor: z.string().optional().default(''),
+  expertiseLevels: z.object({
+    beginner: z.boolean().default(false),
+    intermediate: z.boolean().default(false),
+    advanced: z.boolean().default(false),
+  }).optional().default({ beginner: false, intermediate: false, advanced: false }),
+  // Shared
+  availability: z.object({
+    morning: z.boolean().default(false),
+    afternoon: z.boolean().default(false),
+    evening: z.boolean().default(false),
+  }).optional().default({ morning: false, afternoon: false, evening: false }),
+  goal: z.string().optional().default(''),
+  about: z.string().optional().default(''),
 }).refine(data => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
 })
+// Conditional validation: tutor and both roles require tutor fields
+.refine(
+  (data) => {
+    if (data.role === 'tutor' || data.role === 'both') {
+      // At least one subject is required
+      if (!data.subjectsCanTutor || data.subjectsCanTutor.trim() === '') return false
+      // At least one availability slot is required
+      if (!data.availability || (!data.availability.morning && !data.availability.afternoon && !data.availability.evening)) return false
+    }
+    return true
+  },
+  { message: 'Tutor role requires at least one subject and one availability slot', path: ['subjectsCanTutor'] }
+)
+// Conditional validation: seeker and both roles require student fields
+.refine(
+  (data) => {
+    if (data.role === 'seeker' || data.role === 'both') {
+      // Year level is required
+      if (!data.yearLevel || data.yearLevel.trim() === '') return false
+      // At least one subject is required
+      if (!data.subjectsNeedHelp || data.subjectsNeedHelp.trim() === '') return false
+      // At least one availability slot is required
+      if (!data.availability || (!data.availability.morning && !data.availability.afternoon && !data.availability.evening)) return false
+    }
+    return true
+  },
+  { message: 'Student role requires year level, at least one subject, and one availability slot', path: ['subjectsNeedHelp'] }
+)
+// Duplicate validation: when role is both, student subjects and tutor subjects must not have duplicates
+.refine(
+  (data) => {
+    if (data.role === 'both') {
+      const studentSubjects = (data.subjectsNeedHelp || '')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean)
+      const tutorSubjects = (data.subjectsCanTutor || '')
+        .split(',')
+        .map(s => s.trim().toLowerCase())
+        .filter(Boolean)
+      const duplicates = studentSubjects.filter(s => tutorSubjects.includes(s))
+      return duplicates.length === 0
+    }
+    return true
+  },
+  { message: 'Subjects cannot appear in both "Subjects you need help with" and "Subjects you can tutor"', path: ['subjectsCanTutor'] }
+)
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email format').toLowerCase(),
+  email: z
+    .string()
+    .email('Invalid email format')
+    .toLowerCase()
+    .refine((email) => email.endsWith(CSU_EMAIL_DOMAIN), CSU_EMAIL_ERROR),
 })
 
 const resetPasswordSchema = z.object({
@@ -147,7 +227,20 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req, res) =
  * Register new user
  */
 router.post('/register', validateBody(registerSchema), asyncHandler(async (req, res) => {
-  const { fullName, email, password, course, role } = req.body
+  const {
+    fullName,
+    email,
+    password,
+    course,
+    role,
+    yearLevel,
+    subjectsNeedHelp,
+    subjectsCanTutor,
+    expertiseLevels,
+    availability,
+    goal,
+    about,
+  } = req.body
 
   // Check if user already exists
   const existingUser = await prisma.user.findUnique({
@@ -161,7 +254,20 @@ router.post('/register', validateBody(registerSchema), asyncHandler(async (req, 
   // Hash password
   const passwordHash = await bcrypt.hash(password, 12)
 
-  // Create user
+  // Prepare tutor profile data if role is tutor or both
+  const tutorProfileData = (role === 'tutor' || role === 'both') ? {
+    subjects: subjectsCanTutor ? subjectsCanTutor.split(',').map((s: string) => s.trim()).filter(Boolean) : [],
+    expertise: expertiseLevels ? Object.entries(expertiseLevels).find(([, v]) => v)?.[0] || 'intermediate' : 'intermediate',
+    expertiseLevels: expertiseLevels || { beginner: false, intermediate: false, advanced: false },
+    availability: availability || { morning: false, afternoon: false, evening: false },
+    about: about || '',
+    isActive: true,
+  } : null
+
+  // Prepare student profile data if role is seeker or both (stored in user metadata or separate table if needed)
+  // For now, we'll store student preferences in user metadata or can add a StudentProfile model later
+
+  // Create user with conditional tutor profile
   const user = await prisma.user.create({
     data: {
       fullName,
@@ -169,6 +275,19 @@ router.post('/register', validateBody(registerSchema), asyncHandler(async (req, 
       passwordHash,
       course,
       role,
+      // Store student preferences in user metadata
+      ...((role === 'seeker' || role === 'both') && {
+        yearLevel: yearLevel || '',
+        subjectsNeedHelp: subjectsNeedHelp || '',
+        goal: goal || '',
+        availability: availability || { morning: false, afternoon: false, evening: false },
+      }),
+      // Create tutor profile if role is tutor or both
+      ...(tutorProfileData && {
+        tutorProfile: {
+          create: tutorProfileData,
+        },
+      }),
     },
     select: {
       id: true,

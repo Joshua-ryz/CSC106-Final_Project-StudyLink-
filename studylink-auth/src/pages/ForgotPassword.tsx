@@ -1,6 +1,7 @@
 /**
  * Forgot Password Page
  * Request password reset link via email
+ * NFR-004 NFR-005 NFR-011 references
  */
 
 import { useState } from 'react'
@@ -13,8 +14,8 @@ import { forgotPassword } from '@/services/authService'
 import { useToast } from '@/components/ui/toaster'
 import {
   AuthLayout,
-  FormInput,
-  PrimaryButton,
+  InputField,
+  Button,
 } from '@/components'
 
 export function ForgotPassword() {
@@ -84,7 +85,7 @@ export function ForgotPassword() {
               <AlertCircle className="w-5 h-5 text-sl-accent-secondary flex-shrink-0" aria-hidden="true" />
               <p className="text-sl-text-secondary">
                 Didn't receive the email? Check your spam folder or{' '}
-                <button
+              <button
                   onClick={handleResend}
                   className="link-text underline"
                 >
@@ -99,12 +100,13 @@ export function ForgotPassword() {
               <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
               Back to Login
             </Link>
-            <button
+            <Button
+              variant="ghost"
+              size="md"
               onClick={handleResend}
-              className="btn-secondary"
             >
               Resend Email
-            </button>
+            </Button>
           </div>
         </div>
       </AuthLayout>
@@ -113,7 +115,7 @@ export function ForgotPassword() {
 
   return (
     <AuthLayout>
-      <div className="card-auth">
+      <div className="card-auth w-full max-w-md">
         <div className="text-center mb-8 animate-in slide-up">
           <h1 className="text-2xl lg:text-3xl font-bold text-sl-text-primary">Forgot Password?</h1>
           <p className="mt-2 text-sl-text-secondary">
@@ -122,25 +124,27 @@ export function ForgotPassword() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-          <FormInput
+          <InputField
             label="CSU Email Address"
             type="email"
-            placeholder="student@csu.edu.ph"
+            placeholder="student@carsu.edu.ph"
             error={errors.email?.message}
-            icon={<Mail className="w-5 h-5" />}
+            leftIcon={<Mail className="w-5 h-5" />}
             autoComplete="email"
             {...register('email')}
           />
 
-          <PrimaryButton
+          <Button
             type="submit"
+            variant="primary"
+            size="md"
             fullWidth
             loading={isSubmitting}
             className="mt-2"
+            iconRight={<Lock className="w-5 h-5" aria-hidden="true" />}
           >
             Send Reset Link
-            <Lock className="ml-2 w-5 h-5" aria-hidden="true" />
-          </PrimaryButton>
+          </Button>
         </form>
 
         <div className="mt-8 animate-in slide-up" style={{ animationDelay: '0.2s' }}>

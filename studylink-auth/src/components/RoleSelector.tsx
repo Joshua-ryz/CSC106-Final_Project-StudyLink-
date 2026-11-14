@@ -1,6 +1,6 @@
 /**
  * RoleSelector Component
- * Three selectable cards for Tutee, Tutor, and Both roles
+ * Three selectable cards for Seeker, Tutor, and Both roles
  * Keyboard accessible with proper ARIA attributes
  */
 
@@ -8,6 +8,7 @@ import React from 'react'
 import { GraduationCap, UserCheck, Users, CheckCircle } from 'lucide-react'
 import { cn } from '@/utils'
 import { ROLE_OPTIONS, UserRole } from '@/types/auth'
+import { Label } from './ui/label'
 
 interface RoleSelectorProps {
   value: UserRole | ''
@@ -17,15 +18,15 @@ interface RoleSelectorProps {
 }
 
 const roleIcons = {
-  TUTEE: GraduationCap,
-  TUTOR: UserCheck,
-  BOTH: Users,
+  seeker: GraduationCap,
+  tutor: UserCheck,
+  both: Users,
 }
 
 const roleColors = {
-  TUTEE: 'from-blue-500 to-blue-600',
-  TUTOR: 'from-green-500 to-green-600',
-  BOTH: 'from-purple-500 to-purple-600',
+  seeker: 'from-blue-500 to-blue-600',
+  tutor: 'from-green-500 to-green-600',
+  both: 'from-purple-500 to-purple-600',
 }
 
 export function RoleSelector({ value, onChange, error, disabled }: RoleSelectorProps) {
@@ -122,5 +123,3 @@ export function RoleSelector({ value, onChange, error, disabled }: RoleSelectorP
     </div>
   )
 }
-
-import { Label } from './ui/label'

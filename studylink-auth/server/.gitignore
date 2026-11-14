@@ -47,3 +47,14 @@ prisma/migrations/.migration_lock.toml
 # Misc
 *.pem
 .cache/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build files
+dist/

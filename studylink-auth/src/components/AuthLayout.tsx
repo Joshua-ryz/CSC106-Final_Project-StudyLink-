@@ -1,7 +1,7 @@
 /**
  * AuthLayout Component
  * Split-screen layout for authentication pages
- * Desktop: Brand panel (left) + Form panel (right)
+ * Desktop: Brand panel (left, fixed) + Form panel (right, scrollable)
  * Mobile: Form panel only (brand panel hidden)
  */
 
@@ -16,10 +16,10 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children, className }: AuthLayoutProps) {
   return (
-    <div className={cn('auth-container min-h-screen', className)}>
+    <div className={cn('auth_container min-h-screen', className)}>
       <BrandPanel />
-      <main className="form-panel w-full lg:w-1/2">
-        <div className="w-full max-w-md mx-auto animate-in slide-up">
+      <main className="form_panel w-full lg:w-1/2 min-h-screen">
+        <div className="w-full max-w-2xl mx-auto animate-in slide-up lg:max-w-2xl">
           {children}
         </div>
       </main>

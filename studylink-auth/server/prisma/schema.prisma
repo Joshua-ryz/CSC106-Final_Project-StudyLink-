@@ -1,5 +1,5 @@
 // Prisma Schema for StudyLink
-// Defines the database models for the application
+// NFR-004 NFR-005 NFR-011 references
 
 generator client {
   provider = "prisma-client-js"
@@ -11,10 +11,18 @@ datasource db {
 }
 
 enum UserRole {
-  TUTEE
-  TUTOR
-  BOTH
+  seeker
+  tutor
+  both
   ADMIN
+}
+
+enum SessionStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  COMPLETED
 }
 
 model User {
@@ -23,8 +31,15 @@ model User {
   passwordHash  String    @db.VarChar(255)
   fullName      String    @db.VarChar(100)
   course        String    @db.VarChar(100)
-  role          UserRole  @default(TUTEE)
+  role          UserRole  @default(seeker)
   isVerified    Boolean   @default(false)
+
+  // Student profile fields (for seeker/both roles)
+  yearLevel         String?   @db.VarChar(50)
+  subjectsNeedHelp  String?   @db.Text
+  goal              String?   @db.Text
+  studentAvailability Json?   // { morning: boolean, afternoon: boolean, evening: boolean }
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -45,8 +60,10 @@ model TutorProfile {
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subjects        String[]
-  expertise       String   @db.VarChar(50) // beginner, intermediate, advanced
+  expertise       String   @db.VarChar(50) // beginner, intermediate, advanced (primary expertise)
+  expertiseLevels Json     // { beginner: boolean, intermediate: boolean, advanced: boolean }
   availability    Json     // { morning: boolean, afternoon: boolean, evening: boolean }
+  about           String?  @db.Text
   bio             String?  @db.Text
   hourlyRate      Decimal? @db.Decimal(10, 2)
   rating          Float    @default(0)
@@ -76,14 +93,6 @@ model Session {
   rating        Rating?
 
   @@map("sessions")
-}
-
-enum SessionStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELLED
-  COMPLETED
 }
 
 model Rating {

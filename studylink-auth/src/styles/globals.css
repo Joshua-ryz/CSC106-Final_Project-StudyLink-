@@ -21,7 +21,7 @@
   --shadow-glow-primary: 0 0 30px rgba(119, 117, 245, 0.3);
   --shadow-glow-secondary: 0 0 30px rgba(92, 141, 255, 0.3);
   --shadow-glow-error: 0 0 30px rgba(239, 68, 68, 0.3);
-  --shadow-glow-success: 0 0 30px rgba(34, 197, 94, 0.3);
+  --color-sl-glow-success: 0 0 30px rgba(34, 197, 94, 0.3);
   --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.02);
   --shadow-card-hover: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(119, 117, 245, 0.1);
 }
@@ -62,8 +62,41 @@
     }
   }
 
+  /* Slide-up alias for semantic clarity */
+  .slide-up {
+    animation: animateIn 0.3s ease-out forwards;
+  }
+
   .focus-ring {
     @apply focus:outline-none focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-main;
+  }
+
+  /* Logo floating animation */
+  @keyframes floatLogo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .float-logo {
+    animation: floatLogo 3s ease-in-out infinite;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-in,
+    .slide-up {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+    .float-logo,
+    .shape {
+      animation: none !important;
+    }
+    * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 
   .glass-card {
@@ -87,23 +120,32 @@
   .gradient-border::before {
     content: '';
     position: absolute;
-    inset: -1px;
+      inset: -1px;
     border-radius: 1rem;
     background: linear-gradient(135deg, #7775F5, #5C8DFF);
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: -1;
-  }
-
-  .gradient-border:hover::before {
-    opacity: 1;
+    &:hover {
+      opacity: 1;
+    }
   }
 
   .input-field {
-    @apply w-full px-4 py-3.5 bg-sl-bg-input border border-sl-border rounded-xl text-sl-text-primary placeholder-sl-text-secondary/60
+    @apply w-full py-3.5 bg-sl-bg-input border border-sl-border rounded-xl text-sl-text-primary placeholder-sl-text-secondary/60
            transition-all duration-200
            focus:border-sl-accent-primary focus:ring-2 focus:ring-sl-accent-primary/20 focus:outline-none
            disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Autofill fix for dark mode - opaque background matching input */
+  .input-field:-webkit-autofill,
+  .input-field:-webkit-autofill:hover,
+  .input-field:-webkit-autofill:focus,
+  .input-field:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 100px var(--color-sl-bg-input) inset !important;
+      box-shadow: 0 0 0 100px var(--color-sl-bg-input) inset !important;
+      -webkit-text-fill-color: var(--color-sl-text-primary) !important;
   }
 
   .label-text {
@@ -136,7 +178,7 @@
     @apply px-4 py-2 text-sm font-medium text-sl-text-secondary
            transition-all duration-200
            hover:text-sl-accent-primary hover:bg-sl-bg-secondary rounded-lg
-           focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-main;
+           focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-card;
   }
 
   .card-auth {
@@ -147,7 +189,7 @@
     @apply relative p-5 bg-sl-bg-input border-2 border-sl-border rounded-xl cursor-pointer
            transition-all duration-200
            hover:border-sl-accent-primary/50 hover:bg-sl-bg-secondary
-           focus:outline-none focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-main;
+           focus:outline-none focus:ring-2 focus:ring-sl-accent-primary focus:ring-offset-2 focus:ring-offset-sl-bg-card;
   }
 
   .role-card-selected {
@@ -182,36 +224,39 @@
 }
 
 @layer components {
-  .auth-container {
-    @apply min-h-screen w-full flex;
-  }
-
-  .brand-panel {
-    @apply hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative overflow-hidden;
+  .auth_container {
+    @apply min-h-screen w-full flex relative;
     background: linear-gradient(135deg, #0B0D12 0%, #11141C 50%, #171B25 100%);
   }
 
-  .brand-panel::before {
+  .auth_container::before {
     content: '';
     @apply absolute inset-0 opacity-5;
-    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237775F5' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%237775F5' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zm6 34v-4H4v4H0v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4H6zM6 4V0H4v4H0v2h4v4h2v-4h4v-2h-4zm0 30v-4H0v2h4v4h2v-4h4v-2H6z'/%3E%3C/g%3E%3C/svg%3E");
+    pointer-events: none;
   }
 
-  .brand-panel::after {
+  .auth_container::after {
     content: '';
     @apply absolute inset-0;
     background: radial-gradient(ellipse at 50% 50%, rgba(119, 117, 245, 0.08) 0%, transparent 70%);
+    pointer-events: none;
   }
 
-  .form-panel {
-    @apply flex-1 flex items-center justify-center p-8 lg:p-12;
+  .brand_panel {
+    @apply hidden lg:flex lg:w-1/2 flex-col items-center justify-center p-12 relative min-h-screen;
+    /* Background and effects moved to .auth_container so they span full page height */
   }
 
-  .illustration-container {
+  .form_panel {
+    @apply lg:w-1/2 flex items-center justify-center p-8 lg:p-12 min-h-screen;
+  }
+
+  .illustration_container {
     @apply relative w-full max-w-md mx-auto;
   }
 
-  .floating-shapes {
+  .floating_shapes {
     @apply absolute inset-0 overflow-hidden pointer-events-none;
   }
 
@@ -229,7 +274,11 @@
 }
 
 @media (max-width: 1024px) {
-  .brand-panel {
+  .brand_panel {
     @apply hidden;
+  }
+
+  .form_panel {
+    @apply lg:w-full;
   }
 }
